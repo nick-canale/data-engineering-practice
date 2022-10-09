@@ -4,6 +4,9 @@ import validators
 import os
 import zipfile
 from urllib.parse import urlparse
+import asyncio
+import time
+
 
 download_uris = [
     'https://divvy-tripdata.s3.amazonaws.com/Divvy_Trips_2018_Q4.zip',
@@ -15,7 +18,7 @@ download_uris = [
     'https://divvy-tripdata.s3.amazonaws.com/Divvy_Trips_2220_Q1.zip'
 ]
 
-def DownloadZipFile(ZipFileURL) -> str:
+async def DownloadZipFile(ZipFileURL) -> str:
     print(f'Downloading {ZipFileURL}')
     SaveFileLocation = os.path.basename(urlparse(ZipFileURL).path)
     if os.path.exists(SaveFileLocation):
@@ -30,7 +33,7 @@ def DownloadZipFile(ZipFileURL) -> str:
         f.write(r.content) 
     return SaveFileLocation
 
-def ExtractZipFile(ZipFilePath) -> list:
+async def ExtractZipFile(ZipFilePath) -> list:
     print(f'Attempting to unzip {ZipFilePath}')
     if zipfile.is_zipfile(ZipFilePath):
         f = zipfile.ZipFile(ZipFilePath)
@@ -55,20 +58,23 @@ def ExtractZipFile(ZipFilePath) -> list:
     os.remove(ZipFilePath)
     return ExtractedFiles
 
-def main():
+async def ProcessURIs(URI: str) -> None:
+    start = time.perf_counter()
+    ZipFile = await DownloadZipFile(URI)
+    ExtractedFileNames = await ExtractZipFile(ZipFile)
+    end = time.perf_counter() - start
+    print(f"-->Processing {URI} (took {end:0.2f} seconds).")
+    if ExtractedFileNames is not None:
+        for fn in ExtractedFileNames:
+            print(f"Extracted: {fn}")
+
+async def main(*download_uris):
     # Create the downloads directory
     if not os.path.exists('Downloads'):
         os.mkdir('Downloads')
     os.chdir('Downloads')
-
-    #loop through the list and download the files, then write them to disk
-    for i in download_uris:
-        DownloadZipFile(i)
-    
-    #Now extract the zip files
-    for i in os.listdir():
-        ExtractZipFile(i)
+    await asyncio.gather(*(ProcessURIs(n) for n in download_uris))
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main(*download_uris))
