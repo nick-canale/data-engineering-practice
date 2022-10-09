@@ -6,7 +6,7 @@ import zipfile
 from urllib.parse import urlparse
 import asyncio
 import time
-
+import aiohttp
 
 download_uris = [
     'https://divvy-tripdata.s3.amazonaws.com/Divvy_Trips_2018_Q4.zip',
@@ -18,22 +18,23 @@ download_uris = [
     'https://divvy-tripdata.s3.amazonaws.com/Divvy_Trips_2220_Q1.zip'
 ]
 
-async def DownloadZipFile(ZipFileURL) -> str:
+async def DownloadZipFile(ZipFileURL, session) -> str:
     print(f'Downloading {ZipFileURL}')
     SaveFileLocation = os.path.basename(urlparse(ZipFileURL).path)
     if os.path.exists(SaveFileLocation):
         print(f'Already retrieved file {SaveFileLocation}, skipping')
         return
     if validators.url(ZipFileURL):
-        r = requests.get(ZipFileURL)
+        async with session.get(ZipFileURL) as resp:
+            r = await resp.read()
     else:
         print(f'Malformed URL: {ZipFileURL}')
         return
     with open(SaveFileLocation, 'wb') as f:
-        f.write(r.content) 
+        f.write(r) 
     return SaveFileLocation
 
-async def ExtractZipFile(ZipFilePath) -> list:
+async def ExtractZipFile(ZipFilePath, session) -> list:
     print(f'Attempting to unzip {ZipFilePath}')
     if zipfile.is_zipfile(ZipFilePath):
         f = zipfile.ZipFile(ZipFilePath)
@@ -58,23 +59,26 @@ async def ExtractZipFile(ZipFilePath) -> list:
     os.remove(ZipFilePath)
     return ExtractedFiles
 
-async def ProcessURIs(URI: str) -> None:
+async def ProcessURIs(URI: str, session) -> None:
     start = time.perf_counter()
-    ZipFile = await DownloadZipFile(URI)
-    ExtractedFileNames = await ExtractZipFile(ZipFile)
+    ZipFile = await DownloadZipFile(URI, session)
+    ExtractedFileNames = await ExtractZipFile(ZipFile, session)
     end = time.perf_counter() - start
     print(f"-->Processing {URI} (took {end:0.2f} seconds).")
     if ExtractedFileNames is not None:
         for fn in ExtractedFileNames:
             print(f"Extracted: {fn}")
 
-async def main(*download_uris):
+async def main():
     # Create the downloads directory
     if not os.path.exists('Downloads'):
         os.mkdir('Downloads')
     os.chdir('Downloads')
-    await asyncio.gather(*(ProcessURIs(n) for n in download_uris))
+    
+    async with aiohttp.ClientSession() as session:
+        await asyncio.gather(*(ProcessURIs(n, session) for n in download_uris))
 
 
 if __name__ == '__main__':
-    asyncio.run(main(*download_uris))
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.run(main())
