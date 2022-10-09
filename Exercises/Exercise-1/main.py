@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import asyncio
 import time
 import aiohttp
+import platform
 
 download_uris = [
     'https://divvy-tripdata.s3.amazonaws.com/Divvy_Trips_2018_Q4.zip',
@@ -80,5 +81,6 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    if platform.system() == 'Windows':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main())
