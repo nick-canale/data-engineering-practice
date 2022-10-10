@@ -3,3 +3,5 @@
 *postgres-data*
 *.csv
 *.zip
+*.html
+*.txt
