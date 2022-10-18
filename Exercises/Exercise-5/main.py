@@ -9,11 +9,11 @@ def ConvertFrictionlessTypeToPostgres(FrictionlessTypeName : str) -> str:
     #if FrictionlessTypeName == 'integer': return int
 
 def main():
-    host = 'postgres'
-    database = 'postgres'
-    user = 'postgres'
-    pas = 'postgres'
-    conn = psycopg2.connect(host=host, database=database, user=user, password=pas)
+    # host = 'postgres'
+    # database = 'postgres'
+    # user = 'postgres'
+    # pas = 'postgres'
+    # conn = psycopg2.connect(host=host, database=database, user=user, password=pas)
 
     # your code here 
     os.chdir('data')
